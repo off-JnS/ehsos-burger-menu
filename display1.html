@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>Ehso's Burger — Display 1 · Burger &amp; Sides</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #050505;
+      overflow: hidden;
+    }
+
+    /* Scale the 1920×1080 display to fill whatever viewport the browser gives us */
+    #scaler {
+      position: fixed;
+      top: 0; left: 0;
+      transform-origin: top left;
+    }
+
+    /* ── Brand design tokens ── */
+    :root {
+      --orange: #f97316;
+      --orange-dark: #ea580c;
+      --gold: #fbbf24;
+      --darker: #111;
+      --dark: #1a1a1a;
+      --surface: #222;
+      --surface-light: #2a2a2a;
+      --light: #f8f8f8;
+      --muted: #888;
+    }
+
+    .display {
+      width: 1920px;
+      height: 1080px;
+      background: var(--darker);
+      color: var(--light);
+      font-family: 'Inter', system-ui, sans-serif;
+      position: relative;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .display * { box-sizing: border-box; }
+    .bn { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.04em; }
+
+    .kicker {
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--orange);
+      font-size: 16px;
+    }
+
+    .allergen {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      color: rgba(255,255,255,0.35);
+      text-transform: lowercase;
+    }
+
+    .price-eur { font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; }
+    .price-eur .eur { font-size: 0.55em; opacity: 0.7; margin-left: 6px; vertical-align: baseline; }
+
+    .food-ph {
+      position: relative;
+      background:
+        repeating-linear-gradient(45deg,
+          rgba(249,115,22,0.10) 0 12px,
+          rgba(249,115,22,0.04) 12px 24px),
+        radial-gradient(circle at 30% 30%, rgba(249,115,22,0.18), transparent 60%),
+        #1a1a1a;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255,255,255,0.4);
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 12px;
+    }
+    .food-ph::after {
+      content: "";
+      position: absolute; inset: 8px;
+      border: 1px dashed rgba(255,255,255,0.08);
+      border-radius: 10px;
+      pointer-events: none;
+    }
+    .food-ph span { position: relative; z-index: 1; max-width: 80%; }
+
+    @keyframes ehso-fade-up {
+      from { opacity: 0; transform: translateY(40px); }
+      to   { opacity: 1; transform: none; }
+    }
+    @keyframes ehso-fade-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes ehso-slide-right {
+      from { opacity: 0; transform: translateX(-40px); }
+      to   { opacity: 1; transform: none; }
+    }
+    @keyframes ehso-glow {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50%      { opacity: 0.7; transform: scale(1.06); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .display *, .display *::before, .display *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="scaler">
+    <div id="root"></div>
+  </div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
+
+  <script>
+    /* ── Menu data ── */
+    window.MENU = {
+      burgers: [
+        { name: "Hamburger",        price: "8,00",  allergens: "a,d,g,l,m", desc: "Beef 150g, karamellisierte Zwiebeln, frische Tomaten und Gewürzgurken" },
+        { name: "Cheese Burger",    price: "9,00",  allergens: "a,d,g,l,m", desc: "Beef 150g, Cheddar, karamellisierte Zwiebeln, frische Tomaten und Gewürzgurken" },
+        { name: "Double Cheese",    price: "11,00", allergens: "a,d,g,l,m", desc: "2× Beef 150g, Cheddar, karamellisierte Zwiebeln, frische Tomaten und Gewürzgurken" },
+        { name: "Champignon",       price: "10,00", allergens: "a,d,g,l,m", desc: "Beef 150g, Cheddar, Champignons und karamellisierte Zwiebeln" },
+        { name: "BBQ Bacon",        price: "11,00", allergens: "1,3,a,d,g,l,m", desc: "Beef 150g, Cheddar, Rinder-Bacon, karamellisierte Zwiebeln und frische Tomaten" },
+        { name: "Bacon Egg",        price: "10,00", allergens: "1,3,a,d,g,l,m", desc: "Beef 150g, Rinder-Bacon, Ei, Cheddar, karamellisierte Zwiebeln und Tomaten" },
+        { name: "Blue-Cheese Bacon",price: "11,00", allergens: "1,3,a,d,g,l,m", desc: "Beef 150g, französischer Blauschimmelkäse, Rinder-Bacon, karamellisierte Zwiebeln und frische Tomaten" },
+        { name: "Chili Cheese",     price: "10,00", allergens: "a,d,g,l,m", desc: "Beef 150g, Cheddar, Jalapeños, karamellisierte Zwiebeln und frische Tomaten" },
+        { name: "Crispy Chicken",   price: "10,00", allergens: "a,d,g,l,m", desc: "Crispy Chicken 130g, Cheddar, Jalapeños, karamellisierte Zwiebeln, frische Tomaten" },
+        { name: "Chicken Lemon",    price: "10,00", allergens: "a,d,g,l,m", desc: "150g mariniertes Hähnchenbrustfilet, Cheddar, karamellisierte Zwiebeln, frische Tomaten und Gewürzgurken" },
+        { name: "Ehso's Burger",    price: "12,00", allergens: "1,2,3,a,d,g,l,m", desc: "Beef 150g, Cheddar, Sucuk, Schafskäse, karamellisierte Zwiebeln, frische Tomaten und Gewürzgurken", signature: true },
+      ],
+      fingerFood: [
+        { name: "Chicken Wings",        qty: "6 Stück",          price: "6,50", allergens: "a" },
+        { name: "Chicken Nuggets",      qty: "6 Stück",          price: "6,50", allergens: "a,g" },
+        { name: "Chili Cheese Nuggets", qty: "6 Stück",          price: "5,50", allergens: "a,g" },
+        { name: "Potato Pops",          qty: "Taco Beef & Cheese",price: "7,50", allergens: "a,g" },
+        { name: "Mozzarella Sticks",    qty: "6 Stück",          price: "5,50", allergens: "a,g" },
+        { name: "Knoblauchbrot",        qty: "mit Sour Creme",   price: "4,50", allergens: "a,d,g,l" },
+        { name: "Pommes",               qty: "",                 price: "3,00", allergens: "" },
+      ],
+      saucen: ["Knoblauch","Kräuter","Chili","Dänische","Burgersauce","Curry","Ehso's Speciale Spicy","BBQ","Trüffelmayo","Sour Creme","Cheddar Cheese","Ketchup","Mayo"],
+      familyBoxes: [
+        { name: "Box 1", price: "50,00", contents: ["4× Burger nach Wahl","6er Nuggets","2× Pommes","6 Mozzarella Sticks","1L Softdrink"] },
+        { name: "Box 2", price: "35,00", contents: ["2× Burger nach Wahl","6er Wings","2× Pommes","1L Softdrink"] },
+        { name: "Box 3", price: "58,00", contents: ["2× Burger nach Wahl","2× Croque Mini","2× Wraps","2 Crepes","1L Softdrink"] },
+      ],
+    };
+
+    /* ── Viewport scaler ── */
+    function scaleToFit() {
+      const W = 1920, H = 1080;
+      const sw = window.innerWidth  / W;
+      const sh = window.innerHeight / H;
+      const s  = Math.min(sw, sh);
+      const el = document.getElementById('scaler');
+      el.style.width  = W + 'px';
+      el.style.height = H + 'px';
+      el.style.transform = `scale(${s})`;
+      // Centre horizontally/vertically
+      const ox = (window.innerWidth  - W * s) / 2;
+      const oy = (window.innerHeight - H * s) / 2;
+      el.style.left = ox + 'px';
+      el.style.top  = oy + 'px';
+    }
+    scaleToFit();
+    window.addEventListener('resize', scaleToFit);
+
+    /* F = toggle fullscreen */
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'f' || e.key === 'F') {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+        else document.exitFullscreen().catch(() => {});
+      }
+    });
+  </script>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const STAGE_PAD_X  = 64;
+    const STAGE_TOP    = 220;
+    const STAGE_BOTTOM = 988;
+    const STAGE_H      = STAGE_BOTTOM - STAGE_TOP; // 768
+
+    /* ── Shared chrome ── */
+    function ProBg() {
+      return (
+        <>
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: `radial-gradient(ellipse 60% 50% at 85% 15%, rgba(249,115,22,0.12), transparent 60%),
+                         radial-gradient(ellipse 50% 40% at 10% 90%, rgba(249,115,22,0.08), transparent 60%)`,
+            animation: 'ehso-glow 8s ease-in-out infinite',
+          }} />
+          <div style={{
+            position: 'absolute', inset: 0,
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)`,
+            backgroundSize: '64px 64px',
+            maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, black, transparent 90%)',
+          }} />
+        </>
+      );
+    }
+
+    function ProHeader({ title, sub, index, of }) {
+      return (
+        <div style={{
+          position: 'absolute', top: 0, left: STAGE_PAD_X, right: STAGE_PAD_X,
+          height: STAGE_TOP - 20,
+          display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'flex-end', gap: 32,
+        }}>
+          <div style={{ animation: 'ehso-slide-right 0.8s cubic-bezier(0.22,1,0.36,1)', minWidth: 0 }}>
+            <div className="kicker" style={{ marginBottom: 8 }}>Speisekarte</div>
+            <h1 className="bn" key={title} style={{
+              fontSize: 128, lineHeight: 0.85, letterSpacing: '6px', margin: 0, whiteSpace: 'nowrap',
+              animation: 'ehso-fade-up 0.7s cubic-bezier(0.22,1,0.36,1)',
+            }}>{title}</h1>
+            <div style={{ marginTop: 12, color: 'rgba(255,255,255,0.55)', fontSize: 17, letterSpacing: 2.5, textTransform: 'uppercase', fontWeight: 500 }}>{sub}</div>
+          </div>
+          <div style={{ textAlign: 'right', animation: 'ehso-fade-in 0.8s ease' }}>
+            <div className="bn" style={{
+              fontFamily: 'Bebas Neue, sans-serif', letterSpacing: 2, color: 'var(--light)',
+              fontSize: 40, whiteSpace: 'nowrap', display: 'block',
+            }}>EHSO'S<span style={{ color: 'var(--orange)' }}>BURGER</span></div>
+            <div style={{ marginTop: 10, color: 'var(--gold)', fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', fontWeight: 700 }}>SEIT 2018</div>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 16,
+              padding: '8px 16px', border: '1px solid rgba(249,115,22,0.4)', borderRadius: 999,
+              color: 'var(--orange)', fontSize: 12, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase',
+            }}>
+              <span style={{ width: 6, height: 6, background: 'var(--orange)', borderRadius: '50%', animation: 'ehso-glow 2s ease-in-out infinite' }} />
+              {String(index).padStart(2,'0')} / {String(of).padStart(2,'0')}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function ProFooter({ pages, active, note }) {
+      return (
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 92,
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.4))',
+          padding: `0 ${STAGE_PAD_X}px`,
+          display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 32,
+        }}>
+          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, letterSpacing: 2.5, textTransform: 'uppercase', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            ALLE BURGER HALAL · PREISE INKL. MWST.
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
+            {Array.from({ length: pages }).map((_, i) => (
+              <div key={i} style={{
+                width: i === active ? 44 : 10, height: 4, borderRadius: 2,
+                background: i === active ? 'var(--orange)' : 'rgba(255,255,255,0.15)',
+                transition: 'all 0.6s cubic-bezier(0.22,1,0.36,1)',
+              }} />
+            ))}
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, letterSpacing: 2.5, textTransform: 'uppercase', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>
+            <span style={{ color: 'var(--orange)' }}>DISPLAY 1</span> · {note}
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Burger stage ── */
+    function BurgerStage() {
+      const burgers = window.MENU.burgers;
+      const sig  = burgers.find(b => b.signature);
+      const rest = burgers.filter(b => !b.signature);
+      return (
+        <div style={{ display: 'grid', gridTemplateColumns: '660px 1fr', gap: 32, height: '100%' }}>
+          {/* Hero */}
+          <div style={{
+            position: 'relative',
+            background: 'linear-gradient(180deg, #2a1a0c 0%, #1a1208 100%)',
+            border: '1px solid rgba(249,115,22,0.45)',
+            borderRadius: 20, padding: 28,
+            boxShadow: '0 6px 30px rgba(249,115,22,0.25)',
+            display: 'flex', flexDirection: 'column',
+            animation: 'ehso-fade-up 0.7s cubic-bezier(0.22,1,0.36,1) both',
+          }}>
+            <div style={{
+              display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: 8,
+              background: 'var(--orange)', color: '#150a02',
+              padding: '8px 18px', borderRadius: 999,
+              fontSize: 12, letterSpacing: 3, fontWeight: 700, textTransform: 'uppercase',
+              marginBottom: 14,
+            }}>★ Signature</div>
+            <div className="food-ph" style={{ flex: 1, borderRadius: 14, marginBottom: 18 }}>
+              <span style={{ fontSize: 13 }}>{sig.name}<br/>HERO PHOTO</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <h2 className="bn" style={{ fontSize: 56, margin: 0, lineHeight: 0.9, letterSpacing: 3, whiteSpace: 'nowrap' }}>{sig.name.toUpperCase()}</h2>
+              <span className="price-eur" style={{ fontSize: 56, color: 'var(--orange)', lineHeight: 0.9, whiteSpace: 'nowrap' }}>{sig.price}<span className="eur">€</span></span>
+            </div>
+            <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.7)', fontSize: 15, lineHeight: 1.5 }}>{sig.desc}</div>
+            <div className="allergen" style={{ marginTop: 8 }}>{sig.allergens}</div>
+          </div>
+
+          {/* Grid */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'repeat(5, 1fr)',
+            gap: 14, height: '100%',
+          }}>
+            {rest.slice(0, 10).map((b, i) => (
+              <div key={b.name} style={{
+                background: 'var(--surface)',
+                borderRadius: 14,
+                border: '1px solid rgba(255,255,255,0.06)',
+                padding: '12px 16px',
+                display: 'grid', gridTemplateColumns: '78px 1fr', columnGap: 14, alignItems: 'center',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+                animation: `ehso-fade-up 0.6s cubic-bezier(0.22,1,0.36,1) both`,
+                animationDelay: `${0.1 + i * 0.05}s`,
+                minHeight: 0, overflow: 'hidden',
+              }}>
+                <div className="food-ph" style={{ width: 78, height: 78, borderRadius: 10 }}>
+                  <span style={{ fontSize: 9 }}>{b.name}</span>
+                </div>
+                <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <h3 className="bn" style={{ fontSize: 19, margin: 0, lineHeight: 1.05, letterSpacing: 1 }}>{b.name}</h3>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginTop: 2 }}>
+                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1, minWidth: 0 }}>
+                      {b.desc}
+                    </div>
+                    <span className="price-eur" style={{ fontSize: 26, color: 'var(--orange)', whiteSpace: 'nowrap', flexShrink: 0, alignSelf: 'flex-end' }}>{b.price}<span className="eur">€</span></span>
+                  </div>
+                  <div className="allergen" style={{ marginTop: 4, fontSize: 10 }}>{b.allergens}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Sides stage ── */
+    function SidesStage() {
+      const ff     = window.MENU.fingerFood;
+      const fb     = window.MENU.familyBoxes;
+      const saucen = window.MENU.saucen;
+      return (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24, height: '100%' }}>
+          {/* Snacks */}
+          <SidesPanel kicker="Finger Food" title="SNACKS">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1, justifyContent: 'space-between' }}>
+              {ff.map((s, i) => (
+                <div key={s.name} style={{
+                  display: 'flex', alignItems: 'baseline', gap: 10,
+                  animation: `ehso-fade-up 0.5s cubic-bezier(0.22,1,0.36,1) both`,
+                  animationDelay: `${i * 0.05}s`,
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span className="bn" style={{ fontSize: 22, letterSpacing: 1 }}>{s.name}</span>
+                    {s.qty && <div style={{ color: 'var(--muted)', fontSize: 11, marginTop: 1 }}>{s.qty}{s.allergens ? ` · (${s.allergens})` : ''}</div>}
+                    {!s.qty && s.allergens && <span className="allergen" style={{ marginLeft: 6, fontSize: 10 }}>({s.allergens})</span>}
+                  </div>
+                  <div style={{ flex: '0 1 auto', borderBottom: '1px dotted rgba(255,255,255,0.12)', minWidth: 12, alignSelf: 'center' }} />
+                  <span className="price-eur" style={{ fontSize: 24, color: 'var(--orange)' }}>{s.price}<span className="eur">€</span></span>
+                </div>
+              ))}
+            </div>
+          </SidesPanel>
+
+          {/* Family Boxes */}
+          <SidesPanel kicker="Family Boxes" title="ZUM TEILEN">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
+              {fb.map((box, i) => (
+                <div key={box.name} style={{
+                  background: 'linear-gradient(135deg, #1d1410 0%, #150d09 100%)',
+                  border: '1px solid rgba(249,115,22,0.22)',
+                  borderRadius: 12, padding: 14,
+                  animation: `ehso-fade-up 0.5s cubic-bezier(0.22,1,0.36,1) both`,
+                  animationDelay: `${0.1 + i * 0.08}s`,
+                  display: 'grid', gridTemplateColumns: '52px 1fr', columnGap: 14, alignItems: 'start',
+                  flex: 1,
+                }}>
+                  <div style={{
+                    width: 52, height: 52,
+                    background: 'var(--orange)', borderRadius: 10,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: 'Bebas Neue, sans-serif', fontSize: 28, color: '#1a0d05', letterSpacing: 1,
+                    gridRow: '1 / span 2',
+                  }}>{box.name.split(' ')[1]}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+                    <span className="bn" style={{ fontSize: 22, letterSpacing: 1, whiteSpace: 'nowrap' }}>FAMILY {box.name.toUpperCase()}</span>
+                    <span className="price-eur" style={{ fontSize: 26, color: 'var(--orange)', whiteSpace: 'nowrap' }}>{box.price}<span className="eur">€</span></span>
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, lineHeight: 1.5, marginTop: 4, gridColumn: 2 }}>
+                    {box.contents.join(' · ')}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SidesPanel>
+
+          {/* Saucen */}
+          <SidesPanel kicker="Extra · je 1,50 €" title="SAUCEN">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, justifyContent: 'space-between' }}>
+              {saucen.map((s, i) => (
+                <div key={s} style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '6px 0',
+                  borderBottom: i < saucen.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                  animation: `ehso-fade-up 0.5s cubic-bezier(0.22,1,0.36,1) both`,
+                  animationDelay: `${i * 0.03}s`,
+                }}>
+                  <span style={{ width: 6, height: 6, background: 'var(--orange)', borderRadius: '50%', flexShrink: 0 }} />
+                  <span className="bn" style={{ fontSize: 20, letterSpacing: 1, flex: 1 }}>{s}</span>
+                </div>
+              ))}
+            </div>
+          </SidesPanel>
+        </div>
+      );
+    }
+
+    function SidesPanel({ kicker, title, children }) {
+      return (
+        <div style={{
+          background: 'var(--surface)', borderRadius: 16, padding: 22,
+          border: '1px solid rgba(255,255,255,0.05)',
+          display: 'flex', flexDirection: 'column',
+          animation: 'ehso-fade-up 0.7s cubic-bezier(0.22,1,0.36,1) both',
+        }}>
+          <div className="kicker" style={{ marginBottom: 4, fontSize: 12 }}>{kicker}</div>
+          <h2 className="bn" style={{ fontSize: 44, margin: '0 0 16px', letterSpacing: 3, lineHeight: 1 }}>{title}</h2>
+          {children}
+        </div>
+      );
+    }
+
+    /* ── Main display ── */
+    function Display1() {
+      const pages = ['burgers', 'sides'];
+      const [page, setPage] = useState(0);
+
+      useEffect(() => {
+        const t = setInterval(() => setPage(p => (p + 1) % pages.length), 12000);
+        return () => clearInterval(t);
+      }, []);
+
+      const titles = { burgers: 'BURGER', sides: 'SIDES' };
+      const subs   = { burgers: 'Halal · Hausgemacht · Frisch', sides: 'Snacks · Family Boxes · Saucen' };
+
+      return (
+        <div className="display">
+          <ProBg />
+          <ProHeader title={titles[pages[page]]} sub={subs[pages[page]]} index={page + 1} of={pages.length} />
+          <div key={page} style={{
+            position: 'absolute', left: STAGE_PAD_X, right: STAGE_PAD_X, top: STAGE_TOP, height: STAGE_H,
+            animation: 'ehso-fade-in 0.5s ease',
+          }}>
+            {pages[page] === 'burgers' && <BurgerStage />}
+            {pages[page] === 'sides'   && <SidesStage />}
+          </div>
+          <ProFooter pages={pages.length} active={page} note="Als Menü +6,00 €" />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<Display1 />);
+  </script>
+</body>
+</html>
