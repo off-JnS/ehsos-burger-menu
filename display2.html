@@ -101,20 +101,62 @@
     .food-ph span { position: relative; z-index: 1; max-width: 80%; }
 
     @keyframes ehso-fade-up {
-      from { opacity: 0; transform: translateY(40px); }
-      to   { opacity: 1; transform: none; }
+      from { opacity: 0; transform: translateY(28px) scale(0.985); filter: blur(4px); }
+      to   { opacity: 1; transform: none;                          filter: blur(0); }
     }
     @keyframes ehso-fade-in {
       from { opacity: 0; }
       to   { opacity: 1; }
     }
     @keyframes ehso-slide-right {
-      from { opacity: 0; transform: translateX(-40px); }
-      to   { opacity: 1; transform: none; }
+      from { opacity: 0; transform: translateX(-32px); filter: blur(3px); }
+      to   { opacity: 1; transform: none;              filter: blur(0); }
     }
     @keyframes ehso-glow {
-      0%, 100% { opacity: 0.4; transform: scale(1); }
-      50%      { opacity: 0.7; transform: scale(1.06); }
+      0%, 100% { opacity: 0.45; transform: scale(1)    translate3d(0,0,0); }
+      50%      { opacity: 0.78; transform: scale(1.08) translate3d(10px,-6px,0); }
+    }
+    @keyframes ehso-pulse-dot {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.55), 0 0 6px rgba(249,115,22,0.6); }
+      50%      { box-shadow: 0 0 0 7px rgba(249,115,22,0),    0 0 10px rgba(249,115,22,0.85); }
+    }
+    @keyframes ehso-float {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-4px); }
+    }
+    @keyframes ehso-shine {
+      0%   { transform: translateX(-160%) skewX(-14deg); }
+      100% { transform: translateX(280%)  skewX(-14deg); }
+    }
+    @keyframes ehso-grid-drift {
+      from { background-position: 0 0,        0 0; }
+      to   { background-position: 64px 64px,  64px 64px; }
+    }
+    @keyframes ehso-title-in {
+      0%   { opacity: 0; transform: translateY(22px); letter-spacing: 22px; filter: blur(6px); }
+      55%  { opacity: 1; }
+      100% { opacity: 1; transform: none;             letter-spacing: 6px;  filter: blur(0); }
+    }
+    @keyframes ehso-stage-in {
+      0%   { opacity: 0; transform: translateY(10px); filter: blur(6px); }
+      100% { opacity: 1; transform: none;             filter: blur(0); }
+    }
+
+    .ehso-shine-host { position: relative; overflow: hidden; }
+    .ehso-shine-host::after {
+      content: "";
+      position: absolute;
+      top: -30%; bottom: -30%; left: 0; width: 35%;
+      background: linear-gradient(100deg,
+        rgba(255,255,255,0)    0%,
+        rgba(255,255,255,0.06) 40%,
+        rgba(255,255,255,0.22) 50%,
+        rgba(255,255,255,0.06) 60%,
+        rgba(255,255,255,0)    100%);
+      transform: translateX(-160%) skewX(-14deg);
+      animation: ehso-shine 6.5s ease-in-out 1.2s infinite;
+      pointer-events: none;
+      mix-blend-mode: screen;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -241,6 +283,8 @@
                               linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)`,
             backgroundSize: '64px 64px',
             maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, black, transparent 90%)',
+            animation: 'ehso-grid-drift 80s linear infinite',
+            willChange: 'background-position',
           }} />
         </>
       );
@@ -257,7 +301,8 @@
             <div className="kicker" style={{ marginBottom: 8 }}>Speisekarte</div>
             <h1 className="bn" key={title} style={{
               fontSize: 128, lineHeight: 0.85, letterSpacing: '6px', margin: 0, whiteSpace: 'nowrap',
-              animation: 'ehso-fade-up 0.7s cubic-bezier(0.22,1,0.36,1)',
+              animation: 'ehso-title-in 1s cubic-bezier(0.22,1,0.36,1) both',
+              willChange: 'transform, filter, letter-spacing',
             }}>{title}</h1>
             <div style={{ marginTop: 12, color: 'rgba(255,255,255,0.55)', fontSize: 17, letterSpacing: 2.5, textTransform: 'uppercase', fontWeight: 500 }}>{sub}</div>
           </div>
@@ -272,7 +317,7 @@
               padding: '8px 16px', border: '1px solid rgba(249,115,22,0.4)', borderRadius: 999,
               color: 'var(--orange)', fontSize: 12, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase',
             }}>
-              <span style={{ width: 6, height: 6, background: 'var(--orange)', borderRadius: '50%', animation: 'ehso-glow 2s ease-in-out infinite' }} />
+              <span style={{ width: 6, height: 6, background: 'var(--orange)', borderRadius: '50%', animation: 'ehso-pulse-dot 2s ease-in-out infinite' }} />
               {String(index).padStart(2,'0')} / {String(of).padStart(2,'0')}
             </div>
           </div>
@@ -317,12 +362,13 @@
           {/* Size header */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
             {[['Mini','18 cm', p.mini],['Normal','26 cm', p.normal],['Maxi','36 cm', p.maxi]].map(([sz,cm,pr], i) => (
-              <div key={sz} style={{
+              <div key={sz} className={i === 1 ? 'ehso-shine-host' : undefined} style={{
                 background: i === 1 ? 'var(--orange)' : 'var(--surface)',
                 color: i === 1 ? '#150a02' : 'var(--light)',
                 border: i === 1 ? 'none' : '1px solid rgba(249,115,22,0.3)',
                 borderRadius: 14, padding: '14px 22px',
                 display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12,
+                boxShadow: i === 1 ? '0 6px 24px rgba(249,115,22,0.35)' : 'none',
                 animation: `ehso-fade-up 0.6s cubic-bezier(0.22,1,0.36,1) both`,
                 animationDelay: `${i * 0.08}s`,
               }}>
@@ -492,7 +538,8 @@
           <ProHeader title={titles[pages[page]]} sub={subs[pages[page]]} index={page + 1} of={pages.length} />
           <div key={page} style={{
             position: 'absolute', left: STAGE_PAD_X, right: STAGE_PAD_X, top: STAGE_TOP, height: STAGE_H,
-            animation: 'ehso-fade-in 0.5s ease',
+            animation: 'ehso-stage-in 0.85s cubic-bezier(0.22,1,0.36,1) both',
+            willChange: 'transform, filter, opacity',
           }}>
             {pages[page] === 'croque'        && <CroqueStage />}
             {pages[page] === 'wraps'         && <WrapsStage />}
